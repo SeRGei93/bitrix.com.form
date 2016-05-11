@@ -8,6 +8,7 @@ $APPLICATION->IncludeComponent(
 		"ERROR_CAPTCHA_MSG" => "Неверно введён код с картинки",
 		"ERROR_FIELD_MSG" => "Это поле обязательно для заполнения",
 		"ERROR_MSG" => "При отправке произошли ошибки, попробуйте позже",
+        "EVENT_TYPE" => "FEEDBACK_FORM",
 		"EVENT_ID" => "8",
 		"FORM_FIELDS" => array(
 			1 => "NAME|Имя|Y|text|text",
