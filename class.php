@@ -162,7 +162,13 @@ class FormComponent extends CBitrixComponent
             $arFields[$field['NAME']] = $this->request()->getPost($field['NAME']);
         }
 
-        CEvent::Send($this->arParams['EVENT_ID'], SITE_ID, $arFields);
+        CEvent::Send(
+            $this->arParams['EVENT_TYPE'],
+            SITE_ID,
+            $arFields,
+            'Y',
+            $this->arParams['EVENT_ID']
+        );
     }
 
     /**

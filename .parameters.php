@@ -22,10 +22,18 @@ while ($arr = $rsIBlock->Fetch()) {
     $arIBlock[$arr['ID']] = '[' . $arr['ID'] . '] ' . $arr['NAME'];
 }
 
-
+$arEventTypes = array();
+$rsEventTypes = CEventType::GetList();
+while ($arr = $rsEventTypes->Fetch()) {
+    $arEventTypes[$arr['EVENT_NAME']] = '[' . $arr['EVENT_NAME'] . '] ' . $arr['NAME'];
+}
 
 $arEvents = array();
-$rsEvents = CEventMessage::GetList();
+$arFilter = isset($arCurrentValues['EVENT_TYPE']) 
+            ? array('TYPE_ID' => $arCurrentValues['EVENT_TYPE'])
+            : array();
+
+$rsEvents = CEventMessage::GetList($by = 'site_id', $order = 'desc', $arFilter);
 while ($arr = $rsEvents->Fetch()) {
     $arEvents[$arr['ID']] = '[' . $arr['ID'] . '] ' . $arr['SUBJECT'];
 }
@@ -69,6 +77,13 @@ $arComponentParameters = array (
 			'TYPE' => 'LIST',
 			'VALUES' => $arIBlock,
 		),
+        'EVENT_TYPE' => array(
+            'PARENT' => 'BASE',
+			'NAME' => 'Тип почтового шаблона',
+			'TYPE' => 'LIST',
+			'VALUES' => $arEventTypes,
+            "REFRESH" => "Y",
+         ),
         'EVENT_ID' => array(
             'PARENT' => 'BASE',
 			'NAME' => 'Почтовый шаблон',
