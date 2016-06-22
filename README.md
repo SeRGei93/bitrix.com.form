@@ -20,8 +20,27 @@ $APPLICATION->IncludeComponent(
 		"IS_SAVE_TO_IBLOCK" => "Y",
 		"IS_USE_CAPTCHA" => "Y",
 		"SUCCESS_MSG" => "Данные успешно отправлены",
-		"COMPONENT_TEMPLATE" => "bootstrap"
+		"ADD_IBLOCK_MAPPING" => array(
+            "NAME|#NAME#",
+            "ACTIVE|N"
+        )
 	),
 	false
 );
 ```
+
+`FORM_FIELDS` - массив описывающий форму
+
+Пример
+
+`NAME(name и id элемента формы)|Имя(label)|Y(Обязательно ли к заполнению)|text(Тип поля)|text(класс поля)`
+
+Сейчас доступны 2 типа - это file и textarea, все остальные будут подставлены в аттрибут type тега input
+
+`ADD_IBLOCK_MAPPING` - массив описывающий как сохранять информацию в инфоблок
+
+Пример
+
+`NAME(Имя поля в инфоблоке)|#NAME(Имя поля в форме)#`
+
+Для заполнения свойств указывать `PROPERTY_CODE` 

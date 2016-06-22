@@ -115,5 +115,14 @@ $arComponentParameters = array (
                 'MSG|Сообщение|N|textarea',
             )
         ),
+        'ADD_IBLOCK_MAPPING' => array(
+            'PARENT' => 'BASE',
+			'NAME' => 'Список соответсвий для инфоблока и полей формы (Поле инфоблока|Поле формы)',
+			'TYPE' => 'LIST',
+			'VALUES' => array(),
+            'MULTIPLE' => 'Y',
+            'ADDITIONAL_VALUES' => 'Y',
+            'DEFAULT' => array()
+        ),
 	),
 );

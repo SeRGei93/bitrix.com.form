@@ -9,12 +9,16 @@
  */
 
 var falurForm = {
+    errorFieldMsg: '',
+    
     send: function(form, errorFieldMsg)
     {
         var $form = $(form);
         var $msg = $(form + '-msg');
         
-        if (falurForm.validate($form, errorFieldMsg)) {
+        this.errorFieldMsg = errorFieldMsg;
+        
+        if (falurForm.validate($form)) {
             return false;
         }
 
@@ -24,6 +28,10 @@ var falurForm = {
     },
     serializeForm: function (form)
     {
+        if (!!window.FormData) {
+            return new FormData(document.forms[form.attr('id')]);
+        }
+        
         var data = form.serializeArray();
         
         data.map(function (element) {
@@ -34,29 +42,52 @@ var falurForm = {
         
         return data;
     },
-    validate: function (form, errorFieldMsg)
+    validateEmail: function (email) 
+    {
+        var re = /\S+@\S+\.\S+/;
+        return re.test(email);
+    },
+    validateAddError: function ($pe, $e, errorFieldMsgInput)
+    {
+        var errorFieldMsg = !errorFieldMsgInput || errorFieldMsgInput === '' 
+                            ? this.errorFieldMsg 
+                            : errorFieldMsgInput;
+        
+        $pe.addClass('has-error');
+        if ($e.siblings('.help-block').length === 0) {
+            $e.after('<span class="help-block"><strong>'+errorFieldMsg+'</strong></span>');
+        }
+
+        $e.on('keypress', function () {
+            if ( $e.val().length > 0  ) {
+                $pe.removeClass('has-error');
+                $e.siblings('.help-block').remove();
+            }
+        });
+    },
+    validate: function (form)
     {
         notValidate = false;
         
-        form.find('.form-control').each(function () {
-			var $e = $(this);
-			
-            if ( 'required' === $e.attr('required') && '' === $e.val() ) {
-                var $pe = $e.parent();
-                
-                $pe.addClass('has-error');
-				if ($e.siblings('.help-block').length === 0) {
-					$e.after('<span class="help-block"><strong>'+errorFieldMsg+'</strong></span>');
-				}
-				
-                $e.on('keypress', function () {
-                    if ( $e.val().length > 0  ) {
-                        $pe.removeClass('has-error');
-						$e.siblings('.help-block').remove();
-                    }
-                });
+        form.find('.form-group input, .form-group textarea').each(function() {
+            var $e = $(this);
+            var $pe = $e.parent();
+            var isEmpty = $e.is('[required]') && '' === $e.val();
 
-                notValidate = true;
+            switch ($e.attr('type')) {
+                case 'email': 
+                    if (isEmpty && falurForm.validateEmail($e.val())) {
+                        falurForm.validateAddError($pe, $e);
+                        notValidate = true;
+                    }
+                    break;
+
+                default: 
+                    if (isEmpty) {
+                        falurForm.validateAddError($pe, $e);
+                        notValidate = true;
+                    }
+                    break;
             }
         });
         
@@ -64,7 +95,9 @@ var falurForm = {
     },
     clearForm: function (form)
     {
-        form.find('input:text, input[type="email"], input[type="password"], textarea').each(function () {
+        var inputs = 'input:text, input[type="file"], input[type="email"], input[type="password"], textarea';
+        
+        form.find(inputs).each(function () {
             $(this).val(''); 
         });
     },
@@ -93,6 +126,8 @@ var falurForm = {
             type: 'POST',
             url: window.location,
             dataType: 'json',
+            processData: false,
+            contentType: false,
             data: falurForm.serializeForm(form)
         })
         .done(function( response ) {            

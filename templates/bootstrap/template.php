@@ -21,7 +21,19 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 <? endforeach; ?>
 
 <? foreach ($arResult['FORM_FIELDS'] as $field): ?>
-    <? if ($field['TYPE'] == 'textarea'): ?>
+    <? if ($field['TYPE'] == 'file'): ?>
+    <div class="form-group">
+        <label for="<?= $field['NAME'] ?>">
+            <?= $field['LABEL'] ?>:
+        </label>
+
+        <input type="file"
+               id="<?= $field['NAME'] ?>"
+               name="<?= $field['NAME'] ?>"
+               <?= $field['REQUIRED'] == 'Y' ? 'required' : '' ?>
+        >
+    </div>
+    <? elseif ($field['TYPE'] == 'textarea'): ?>
     <div class="form-group">
 		<label for="<?= $field['NAME'] ?>">
             <?= $field['LABEL'] ?>:

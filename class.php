@@ -23,6 +23,14 @@ class FormComponent extends CBitrixComponent
     protected $errorsValidate = [];
 
     /**
+     * Массив с индетивикаторами загруженных файлов
+     *
+     * @var array
+     */
+    protected $files = [];
+
+
+    /**
      * Возарвщвет глобальный класс приложения битрикс
      *
      * @global CMain $APPLICATION
@@ -41,6 +49,10 @@ class FormComponent extends CBitrixComponent
      */
     protected function request()
     {
+        if (isset($this->request)) {
+            return $this->request;
+        }
+
         return Application::getInstance()->getContext()->getRequest();
     }
 
@@ -86,7 +98,13 @@ class FormComponent extends CBitrixComponent
         $request = $this->request();
 
         foreach ($this->getFormFields() as $field) {
-            if ($field['REQUIRED'] == 'Y' && !$request->getPost($field['NAME'])) {
+            if ($field['REQUIRED'] == 'Y' && !$request->getPost($field['NAME']) && $field['TYPE'] != 'file') {
+                $this->errorsValidate[] = $arParams['ERROR_FIELD_MSG'] . ': ' . $field['LABEL'];
+
+                $validate = false;
+            }
+
+            if ($field['REQUIRED'] == 'Y' && $field['TYPE'] == 'file' && !isset($_FILES[$field['NAME']])) {
                 $this->errorsValidate[] = $arParams['ERROR_FIELD_MSG'] . ': ' . $field['LABEL'];
 
                 $validate = false;
@@ -162,13 +180,33 @@ class FormComponent extends CBitrixComponent
             $arFields[$field['NAME']] = $this->request()->getPost($field['NAME']);
         }
 
+        foreach ($_FILES as $id => $file) {
+            $this->files[$id] = CFile::SaveFile($file, 'mailattachments');
+        }
+
         CEvent::Send(
             $this->arParams['EVENT_TYPE'],
             SITE_ID,
             $arFields,
             'Y',
-            $this->arParams['EVENT_ID']
+            $this->arParams['EVENT_ID'],
+            $this->files
         );
+    }
+
+    protected function getMacrosValue($macros)
+    {
+        if (stripos($macros, '#') !== false) {
+            $fieldName = trim($macros, '#');
+
+            if (isset($this->files[$fieldName])) {
+                return CFile::MakeFileArray($this->files[$fieldName]);
+            } else {
+                return $this->request()->getPost($fieldName);
+            }
+        }
+
+        return $macros;
     }
 
     /**
@@ -179,24 +217,79 @@ class FormComponent extends CBitrixComponent
         if ($this->arParams['IS_SAVE_TO_IBLOCK'] == 'Y') {
             Loader::includeModule('iblock');
 
-            $data = CEventMessage::GetByID($this->arParams['EVENT_ID'])->Fetch();
-            $text = $data['MESSAGE'];
+            $mapping = $this->getAddIblockMapping();
 
-            foreach ($this->getFormFields() as $field) {
-                $text = str_replace(
-                    '#'.$field['NAME'].'#',
-                    $this->request()->getPost($field['NAME']),
-                    $text
-                );
+            if (!empty($mapping)) {
+                $fields = [];
+
+                foreach ($mapping as $iblockField => $formField) {
+                    if (stripos($iblockField, 'PROPERTY_') !== false) {
+                        $propName = str_replace('PROPERTY_', '', $iblockField);
+                        $fields['PROPERTY_VALUES'][$propName] = $this->getMacrosValue($formField);
+                    } else {
+                        $fields[$iblockField] = $this->getMacrosValue($formField);
+                    }
+                }
+
+                $fields['IBLOCK_ID'] = $this->arParams['IBLOCK_ID'];
+
+                if (!isset($fields['NAME'])) {
+                    throw new Exception('NAME is required field');
+                }
+            } else {
+                $data = CEventMessage::GetByID($this->arParams['EVENT_ID'])->Fetch();
+                $text = $data['MESSAGE'];
+
+                foreach ($this->getFormFields() as $field) {
+                    $text = str_replace(
+                        '#'.$field['NAME'].'#',
+                        $this->request()->getPost($field['NAME']),
+                        $text
+                    );
+                }
+
+                $fields = [
+                    'NAME' => $data['SUBJECT'] . ': ' . date('d.m.Y H:i:s'),
+                    'IBLOCK_SECTION_ID' => false,
+                    'IBLOCK_ID' => $this->arParams['IBLOCK_ID'],
+                    'PREVIEW_TEXT' => $text
+                ];
+
+                foreach ($this->files as $id => $file) {
+                    if ('PREVIEW_PICTURE' == $id || 'DETAIL_PICTURE' == $id) {
+                        $fields[$id] = $file;
+                    } else {
+                        $fields['PROPERTY_VALUES'][$id] = $file;
+                    }
+                }
             }
 
-            (new CIBlockElement)->Add([
-                'NAME' => $data['SUBJECT'] . ': ' . date('d.m.Y H:i:s'),
-                'IBLOCK_SECTION_ID' => false,
-                'IBLOCK_ID' => $this->arParams['IBLOCK_ID'],
-                'PREVIEW_TEXT' => $text
-            ]);
+            $fields['IBLOCK_SECTION_ID'] = isset($fields['IBLOCK_SECTION_ID'])
+                ? $fields['IBLOCK_SECTION_ID']
+                : false;
+
+            $fields['CODE'] = isset($fields['CODE']) ? $fields['CODE'] : CUtil::translit($fields['NAME'], 'ru');
+
+            $el = new CIBlockElement;
+            $el->Add($fields);
         }
+    }
+
+    protected function getAddIblockMapping()
+    {
+        if (!isset($this->arParams['ADD_IBLOCK_MAPPING']) || empty($this->arParams['ADD_IBLOCK_MAPPING'])) {
+            return [];
+        }
+
+        $res = [];
+
+        foreach ($this->arParams['ADD_IBLOCK_MAPPING'] as $item) {
+            list($iblock, $field) = explode('|', $item);
+
+            $res[$iblock] = $field;
+        }
+
+        return $res;
     }
 
     public function executeComponent()
