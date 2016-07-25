@@ -84,6 +84,7 @@ class FormComponent extends CBitrixComponent
     protected function jsonResponse(array $result)
     {
         $this->gApp()->RestartBuffer();
+        while(ob_end_clean()) {}
         $this->response()->addHeader('Content-Type: application/json; charset=utf-8');
         echo json_encode($result);
         exit;
@@ -99,13 +100,13 @@ class FormComponent extends CBitrixComponent
 
         foreach ($this->getFormFields() as $field) {
             if ($field['REQUIRED'] == 'Y' && !$request->getPost($field['NAME']) && $field['TYPE'] != 'file') {
-                $this->errorsValidate[] = $arParams['ERROR_FIELD_MSG'] . ': ' . $field['LABEL'];
+                $this->errorsValidate[] = $this->arParams['ERROR_FIELD_MSG'] . ': ' . $field['LABEL'];
 
                 $validate = false;
             }
 
             if ($field['REQUIRED'] == 'Y' && $field['TYPE'] == 'file' && !isset($_FILES[$field['NAME']])) {
-                $this->errorsValidate[] = $arParams['ERROR_FIELD_MSG'] . ': ' . $field['LABEL'];
+                $this->errorsValidate[] = $this->arParams['ERROR_FIELD_MSG'] . ': ' . $field['LABEL'];
 
                 $validate = false;
             }
